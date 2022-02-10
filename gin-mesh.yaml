@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    svcname: gin-mesh
+  name: gin-mesh
+  namespace: echo-grpc
+spec:
+  selector:
+    app: gin-mesh
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 18090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gin-mesh
+  namespace: echo-grpc
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: gin-mesh
+      version: v1
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: gin-mesh
+        version: v1
+    spec:
+      containers:
+        - image: shanlongpan/gin-mesh:1.1
+          imagePullPolicy: IfNotPresent   #Always
+          name: app
+          volumeMounts: #容器内挂载点
+            - mountPath: /var/log/gin-mesh
+              name: rune-log        #必须有名称
+          ports:
+            - containerPort: 18090
+              protocol: TCP
+      volumes:
+        - name: rune-log        #跟上面的名称对应
+          hostPath:
+            path: /var/log      #宿主机挂载点
